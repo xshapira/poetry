@@ -2,10 +2,10 @@ import sys
 
 
 try:
-    from importlib import metadata
+    # compatibility for python <3.10
+    import importlib_metadata as metadata
 except ImportError:
-    # compatibility for python <3.8
-    import importlib_metadata as metadata  # noqa: F401, TC002
+    from importlib import metadata  # noqa: F401, TC002
 
 WINDOWS = sys.platform == "win32"
 
