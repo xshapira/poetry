@@ -251,9 +251,9 @@ You can specify a package in the following forms:
         existing_packages = []
 
         for name in packages:
-            for key in section:
-                if key.lower() == name.lower():
-                    existing_packages.append(name)
+            existing_packages.extend(
+                name for key in section if key.lower() == name.lower()
+            )
 
         return existing_packages
 

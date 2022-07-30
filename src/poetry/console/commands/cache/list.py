@@ -14,8 +14,7 @@ class CacheListCommand(Command):
         from poetry.locations import REPOSITORY_CACHE_DIR
 
         if os.path.exists(str(REPOSITORY_CACHE_DIR)):
-            caches = sorted(REPOSITORY_CACHE_DIR.iterdir())
-            if caches:
+            if caches := sorted(REPOSITORY_CACHE_DIR.iterdir()):
                 for cache in caches:
                     self.line(f"<info>{cache.name}</>")
                 return 0

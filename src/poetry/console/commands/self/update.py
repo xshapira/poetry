@@ -59,8 +59,7 @@ class SelfUpdateCommand(Command):
 
         from poetry.utils._compat import WINDOWS
 
-        home = os.getenv("POETRY_HOME")
-        if home:
+        if home := os.getenv("POETRY_HOME"):
             return Path(home, "bin").expanduser()
 
         user_base = site.getuserbase()
@@ -95,7 +94,7 @@ class SelfUpdateCommand(Command):
 
         version = self.argument("version")
         if not version:
-            version = ">=" + __version__
+            version = f">={__version__}"
 
         repo = self.pool.repositories[0]
         packages = repo.find_packages(
@@ -106,9 +105,7 @@ class SelfUpdateCommand(Command):
             return 1
 
         def cmp(x: Package, y: Package) -> int:
-            if x.version == y.version:
-                return 0
-            return int(x.version < y.version or -1)
+            return 0 if x.version == y.version else int(x.version < y.version or -1)
 
         packages.sort(key=cmp_to_key(cmp))
 

@@ -65,15 +65,14 @@ class LinkSource:
 
     def link_package_data(self, link: Link) -> Package:
         name, version = None, None
-        m = wheel_file_re.match(link.filename) or sdist_file_re.match(link.filename)
-
-        if m:
+        if m := wheel_file_re.match(link.filename) or sdist_file_re.match(
+            link.filename
+        ):
             name = canonicalize_name(m.group("name"))
             version = m.group("ver")
         else:
             info, ext = link.splitext()
-            match = self.VERSION_REGEX.match(info)
-            if match:
+            if match := self.VERSION_REGEX.match(info):
                 version = match.group(2)
 
         with contextlib.suppress(ValueError):

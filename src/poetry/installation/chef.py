@@ -69,10 +69,7 @@ class Chef:
                 (wheel.get_minimum_supported_index(self._env.supported_tags), archive),
             )
 
-        if not candidates:
-            return link
-
-        return min(candidates)[1]
+        return min(candidates)[1] if candidates else link
 
     def get_cached_archives_for_link(self, link: Link) -> list[Link]:
         cache_dir = self.get_cache_directory_for_link(link)
@@ -80,8 +77,10 @@ class Chef:
         archive_types = ["whl", "tar.gz", "tar.bz2", "bz2", "zip"]
         links = []
         for archive_type in archive_types:
-            for archive in cache_dir.glob(f"*.{archive_type}"):
-                links.append(Link(archive.as_uri()))
+            links.extend(
+                Link(archive.as_uri())
+                for archive in cache_dir.glob(f"*.{archive_type}")
+            )
 
         return links
 

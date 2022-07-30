@@ -87,7 +87,7 @@ class Authenticator:
             "timeout": kwargs.get("timeout"),
             "allow_redirects": kwargs.get("allow_redirects", True),
         }
-        send_kwargs.update(settings)
+        send_kwargs |= settings
 
         attempt = 0
 
@@ -216,13 +216,14 @@ class Authenticator:
                 "password": cred.password,
             }
 
-        if username:
-            return {
+        return (
+            {
                 "username": username,
                 "password": None,
             }
-
-        return None
+            if username
+            else None
+        )
 
     def _get_certs_for_netloc_from_config(self, netloc: str) -> dict[str, Path | None]:
         certs = {"cert": None, "verify": None}

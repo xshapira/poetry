@@ -102,7 +102,7 @@ class PyPiRepository(HTTPRepository):
 
         search = {"q": query}
 
-        response = requests.session().get(self._base_url + "search", params=search)
+        response = requests.session().get(f"{self._base_url}search", params=search)
         content = parse(response.content, namespaceHTMLElements=False)
         for result in content.findall(".//*[@class='package-snippet']"):
             name = result.find("h3/*[@class='package-snippet__name']").text
@@ -235,7 +235,4 @@ class PyPiRepository(HTTPRepository):
             self._cache_control_cache.delete(self._base_url + endpoint)
             json_response = self.session.get(self._base_url + endpoint)
 
-        if json_response.status_code == 404:
-            return None
-
-        return json_response.json()
+        return None if json_response.status_code == 404 else json_response.json()

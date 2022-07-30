@@ -165,9 +165,7 @@ def site_config_dirs(appname: str) -> list[str]:
     elif sys.platform == "darwin":
         pathlist = [os.path.join("/Library/Application Support", appname)]
     else:
-        # try looking in $XDG_CONFIG_DIRS
-        xdg_config_dirs = os.getenv("XDG_CONFIG_DIRS", "/etc/xdg")
-        if xdg_config_dirs:
+        if xdg_config_dirs := os.getenv("XDG_CONFIG_DIRS", "/etc/xdg"):
             pathlist = [
                 os.path.join(expanduser(x), appname)
                 for x in xdg_config_dirs.split(os.pathsep)

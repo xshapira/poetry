@@ -48,16 +48,16 @@ def temporary_directory(*args: Any, **kwargs: Any) -> Iterator[str]:
 
 
 def get_cert(config: Config, repository_name: str) -> Path | None:
-    cert = config.get(f"certificates.{repository_name}.cert")
-    if cert:
+    if cert := config.get(f"certificates.{repository_name}.cert"):
         return Path(cert)
     else:
         return None
 
 
 def get_client_cert(config: Config, repository_name: str) -> Path | None:
-    client_cert = config.get(f"certificates.{repository_name}.client-cert")
-    if client_cert:
+    if client_cert := config.get(
+        f"certificates.{repository_name}.client-cert"
+    ):
         return Path(client_cert)
     else:
         return None
@@ -73,13 +73,13 @@ def _on_rm_error(func: Callable, path: str, exc_info: Exception) -> None:
 
 def safe_rmtree(path: str) -> None:
     if Path(path).is_symlink():
-        return os.unlink(str(path))
+        return os.unlink(path)
 
     shutil.rmtree(path, onerror=_on_rm_error)
 
 
 def merge_dicts(d1: dict, d2: dict) -> None:
-    for k in d2.keys():
+    for k in d2:
         if k in d1 and isinstance(d1[k], dict) and isinstance(d2[k], Mapping):
             merge_dicts(d1[k], d2[k])
         else:
@@ -94,7 +94,7 @@ def download_file(
 ) -> None:
     import requests
 
-    get = requests.get if not session else session.get
+    get = session.get if session else requests.get
 
     response = get(url, stream=True)
     response.raise_for_status()
@@ -135,6 +135,4 @@ def is_dir_writable(path: Path, create: bool = False) -> bool:
 
 
 def pluralize(count: int, word: str = "") -> str:
-    if count == 1:
-        return word
-    return word + "s"
+    return word if count == 1 else f"{word}s"

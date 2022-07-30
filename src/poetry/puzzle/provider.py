@@ -233,8 +233,9 @@ class Provider:
             package.root_dir = dependency.base
 
         package.files = [
-            {"file": dependency.path.name, "hash": "sha256:" + dependency.hash()}
+            {"file": dependency.path.name, "hash": f"sha256:{dependency.hash()}"}
         ]
+
 
         return [package]
 
@@ -597,7 +598,7 @@ class Provider:
             _deps = [_dep[0] for _dep in by_constraint.values()]
 
             def fmt_warning(d: Dependency) -> str:
-                marker = d.marker if not d.marker.is_any() else "*"
+                marker = "*" if d.marker.is_any() else d.marker
                 return (
                     f"<c1>{d.name}</c1> <fg=default>(<c2>{d.pretty_constraint}</c2>)</>"
                     f" with markers <b>{marker}</b>"
@@ -698,18 +699,15 @@ class Provider:
                 m = re.match(r"fact: (.+?) depends on (.+?) \((.+?)\)", message)
                 if m is None:
                     raise ValueError(f"Unable to parse fact: {message}")
-                m2 = re.match(r"(.+?) \((.+?)\)", m.group(1))
-                if m2:
-                    name = m2.group(1)
-                    version = f" (<c2>{m2.group(2)}</c2>)"
+                if m2 := re.match(r"(.+?) \((.+?)\)", m[1]):
+                    name = m2[1]
+                    version = f" (<c2>{m2[2]}</c2>)"
                 else:
-                    name = m.group(1)
+                    name = m[1]
                     version = ""
 
-                message = (
-                    f"<fg=blue>fact</>: <c1>{name}</c1>{version} "
-                    f"depends on <c1>{m.group(2)}</c1> (<c2>{m.group(3)}</c2>)"
-                )
+                message = f"<fg=blue>fact</>: <c1>{name}</c1>{version} depends on <c1>{m[2]}</c1> (<c2>{m[3]}</c2>)"
+
             elif " is " in message:
                 message = re.sub(
                     "fact: (.+) is (.+)",
@@ -728,31 +726,25 @@ class Provider:
                 message,
             )
         elif message.startswith("derived:"):
-            m = re.match(r"derived: (.+?) \((.+?)\)$", message)
-            if m:
-                message = (
-                    f"<fg=blue>derived</>: <c1>{m.group(1)}</c1>"
-                    f" (<c2>{m.group(2)}</c2>)"
-                )
+            if m := re.match(r"derived: (.+?) \((.+?)\)$", message):
+                message = f"<fg=blue>derived</>: <c1>{m[1]}</c1> (<c2>{m[2]}</c2>)"
             else:
                 message = (
                     f"<fg=blue>derived</>: <c1>{message.split('derived: ')[1]}</c1>"
                 )
         elif message.startswith("conflict:"):
-            m = re.match(r"conflict: (.+?) depends on (.+?) \((.+?)\)", message)
-            if m:
-                m2 = re.match(r"(.+?) \((.+?)\)", m.group(1))
-                if m2:
-                    name = m2.group(1)
-                    version = f" (<c2>{m2.group(2)}</c2>)"
+            if m := re.match(
+                r"conflict: (.+?) depends on (.+?) \((.+?)\)", message
+            ):
+                if m2 := re.match(r"(.+?) \((.+?)\)", m[1]):
+                    name = m2[1]
+                    version = f" (<c2>{m2[2]}</c2>)"
                 else:
-                    name = m.group(1)
+                    name = m[1]
                     version = ""
 
-                message = (
-                    f"<fg=red;options=bold>conflict</>: <c1>{name}</c1>{version} "
-                    f"depends on <c1>{m.group(2)}</c1> (<c2>{m.group(3)}</c2>)"
-                )
+                message = f"<fg=red;options=bold>conflict</>: <c1>{name}</c1>{version} depends on <c1>{m[2]}</c1> (<c2>{m[3]}</c2>)"
+
             else:
                 message = (
                     "<fg=red;options=bold>conflict</>:"

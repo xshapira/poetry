@@ -490,14 +490,19 @@ class VersionSolver:
             return None
 
         locked = self._locked.get(dependency.name, [])
-        for package in locked:
-            if (allow_similar or dependency.is_same_package_as(package)) and (
-                dependency.constraint.allows(package.version)
-                or package.is_prerelease()
-                and dependency.constraint.allows(package.version.next_patch())
-            ):
-                return DependencyPackage(dependency, package.package)
-        return None
+        return next(
+            (
+                DependencyPackage(dependency, package.package)
+                for package in locked
+                if (allow_similar or dependency.is_same_package_as(package))
+                and (
+                    dependency.constraint.allows(package.version)
+                    or package.is_prerelease()
+                    and dependency.constraint.allows(package.version.next_patch())
+                )
+            ),
+            None,
+        )
 
     def _log(self, text: str) -> None:
         self._provider.debug(text, self._solution.attempted_solutions)

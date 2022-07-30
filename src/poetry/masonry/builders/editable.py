@@ -248,11 +248,11 @@ class EditableBuilder(Builder):
         hashsum = hashlib.sha256()
         with filepath.open("rb") as src:
             while True:
-                buf = src.read(1024 * 8)
-                if not buf:
-                    break
-                hashsum.update(buf)
+                if buf := src.read(1024 * 8):
+                    hashsum.update(buf)
 
+                else:
+                    break
             src.seek(0)
 
         return urlsafe_b64encode(hashsum.digest()).decode("ascii").rstrip("=")

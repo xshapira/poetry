@@ -69,10 +69,7 @@ class Locker:
         """
         Checks whether the locker has been locked (lockfile found).
         """
-        if not self._lock.exists():
-            return False
-
-        return "package" in self.lock_data
+        return "package" in self.lock_data if self._lock.exists() else False
 
     def is_fresh(self) -> bool:
         """
@@ -133,8 +130,7 @@ class Locker:
                 package.files = lock_data["metadata"]["files"][info["name"]]
 
             package.python_versions = info["python-versions"]
-            extras = info.get("extras", {})
-            if extras:
+            if extras := info.get("extras", {}):
                 for name, deps in extras.items():
                     package.extras[name] = []
 
@@ -146,9 +142,9 @@ class Locker:
                             m = re.match(r"^(.+?)(?:\[(.+?)])?(?:\s+\((.+)\))?$", dep)
                             if not m:
                                 raise
-                            dep_name = m.group(1)
-                            extras = m.group(2) or ""
-                            constraint = m.group(3) or "*"
+                            dep_name = m[1]
+                            extras = m[2] or ""
+                            constraint = m[3] or "*"
                             dependency = Dependency(
                                 dep_name, constraint, extras=extras.split(",")
                             )
@@ -156,19 +152,17 @@ class Locker:
 
             if "marker" in info:
                 package.marker = parse_marker(info["marker"])
-            else:
-                # Compatibility for old locks
-                if "requirements" in info:
-                    dep = Dependency("foo", "0.0.0")
-                    for name, value in info["requirements"].items():
-                        if name == "python":
-                            dep.python_versions = value
-                        elif name == "platform":
-                            dep.platform = value
+            elif "requirements" in info:
+                dep = Dependency("foo", "0.0.0")
+                for name, value in info["requirements"].items():
+                    if name == "platform":
+                        dep.platform = value
 
-                    split_dep = dep.to_pep_508(False).split(";")
-                    if len(split_dep) > 1:
-                        package.marker = parse_marker(split_dep[1].strip())
+                    elif name == "python":
+                        dep.python_versions = value
+                split_dep = dep.to_pep_508(False).split(";")
+                if len(split_dep) > 1:
+                    package.marker = parse_marker(split_dep[1].strip())
 
             for dep_name, constraint in info.get("dependencies", {}).items():
 
@@ -543,14 +537,13 @@ class Locker:
                         data["dependencies"][k].append(constraint)
 
         if package.extras:
-            extras = {}
-            for name, deps in package.extras.items():
-                # TODO: This should use dep.to_pep_508() once this is fixed
-                # https://github.com/python-poetry/poetry-core/pull/102
-                extras[name] = [
-                    dep.base_pep_508_name if not dep.constraint.is_any() else dep.name
+            extras = {
+                name: [
+                    dep.name if dep.constraint.is_any() else dep.base_pep_508_name
                     for dep in deps
                 ]
+                for name, deps in package.extras.items()
+            }
 
             data["extras"] = extras
 

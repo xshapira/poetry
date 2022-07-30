@@ -25,10 +25,7 @@ if TYPE_CHECKING:
 
 class EntryPoint(_EntryPoint):
     def load(self) -> type[BasePlugin]:
-        if "ApplicationPlugin" in self.object_name:
-            return ApplicationPlugin
-
-        return Plugin
+        return ApplicationPlugin if "ApplicationPlugin" in self.object_name else Plugin
 
 
 @pytest.fixture()

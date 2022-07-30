@@ -55,9 +55,7 @@ class VersionSelector:
             if package is None or package.version < candidate.version:
                 package = candidate
 
-        if package is None:
-            return False
-        return package
+        return False if package is None else package
 
     def find_recommended_require_version(self, package: Package) -> str:
         version = package.version
