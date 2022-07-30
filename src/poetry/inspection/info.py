@@ -166,10 +166,9 @@ class PackageInfo:
         package.files = self.files
 
         if root_dir or (self._source_type in {"directory"} and self._source_url):
-            # this is a local poetry project, this means we can extract "richer"
-            # requirement information, eg: development requirements etc.
-            poetry_package = self._get_poetry_package(path=root_dir or self._source_url)
-            if poetry_package:
+            if poetry_package := self._get_poetry_package(
+                path=root_dir or self._source_url
+            ):
                 package.extras = poetry_package.extras
                 for dependency in poetry_package.requires:
                     package.add_dependency(dependency)
@@ -303,10 +302,7 @@ class PackageInfo:
             # now this is an unpacked directory we know how to deal with
             new_info = cls.from_directory(path=sdist_dir)
 
-        if not info:
-            return new_info
-
-        return info.update(new_info)
+        return info.update(new_info) if info else new_info
 
     @staticmethod
     def has_setup_files(path: Path) -> bool:
@@ -413,10 +409,7 @@ class PackageInfo:
             except ValueError:
                 return None
 
-        info = cls._from_distribution(dist=dist)
-        if info:
-            return info
-        return None
+        return info if (info := cls._from_distribution(dist=dist)) else None
 
     @classmethod
     def from_package(cls, package: Package) -> PackageInfo:
@@ -531,18 +524,19 @@ class PackageInfo:
         :param disable_build: If not `True` and setup reader fails, PEP 517 isolated
             build is attempted in order to gather metadata.
         """
-        project_package = cls._get_poetry_package(path)
-        if project_package:
+        if project_package := cls._get_poetry_package(path):
             info = cls.from_package(project_package)
         else:
             info = cls.from_metadata(path)
 
             if not info or info.requires_dist is None:
                 try:
-                    if disable_build:
-                        info = cls.from_setup_files(path)
-                    else:
-                        info = cls._pep517_metadata(path)
+                    info = (
+                        cls.from_setup_files(path)
+                        if disable_build
+                        else cls._pep517_metadata(path)
+                    )
+
                 except PackageInfoError:
                     if not info:
                         raise

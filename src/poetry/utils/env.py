@@ -210,12 +210,15 @@ class SitePackages:
         self._fallbacks = fallbacks or []
         self._skip_write_checks = skip_write_checks
 
-        self._candidates: list[Path] = []
-        for path in itertools.chain([self._purelib, self._platlib], self._fallbacks):
-            if path not in self._candidates:
-                self._candidates.append(path)
+        self._candidates: list[Path] = [
+            path
+            for path in itertools.chain(
+                [self._purelib, self._platlib], self._fallbacks
+            )
+            if path not in self._candidates
+        ]
 
-        self._writable_candidates = None if not skip_write_checks else self._candidates
+        self._writable_candidates = self._candidates if skip_write_checks else None
 
     @property
     def path(self) -> Path:
@@ -238,18 +241,18 @@ class SitePackages:
         if self._writable_candidates is not None:
             return self._writable_candidates
 
-        self._writable_candidates = []
-        for candidate in self._candidates:
-            if not is_dir_writable(path=candidate, create=True):
-                continue
-            self._writable_candidates.append(candidate)
+        self._writable_candidates = [
+            candidate
+            for candidate in self._candidates
+            if is_dir_writable(path=candidate, create=True)
+        ]
 
         return self._writable_candidates
 
     def make_candidates(
         self, path: Path, writable_only: bool = False, strict: bool = False
     ) -> list[Path]:
-        candidates = self._candidates if not writable_only else self.writable_candidates
+        candidates = self.writable_candidates if writable_only else self._candidates
         if path.is_absolute():
             for candidate in candidates:
                 try:
@@ -277,9 +280,11 @@ class SitePackages:
     ) -> Iterable[metadata.PathDistribution]:
         path = list(
             map(
-                str, self._candidates if not writable_only else self.writable_candidates
+                str,
+                self.writable_candidates if writable_only else self._candidates,
             )
         )
+
 
         yield from metadata.PathDistribution.discover(name=name, path=path)
 
@@ -544,10 +549,7 @@ class EnvManager:
         patch = python_version.text
 
         create = False
-        is_root_venv = self._poetry.config.get("virtualenvs.in-project")
-        # If we are required to create the virtual environment in the root folder,
-        # create or recreate it if needed
-        if is_root_venv:
+        if is_root_venv := self._poetry.config.get("virtualenvs.in-project"):
             create = False
             venv = self._poetry.file.parent / ".venv"
             if venv.exists():
@@ -678,11 +680,7 @@ class EnvManager:
 
             venv = venv_path / name
 
-            if not venv.exists():
-                return self.get_system_env()
-
-            return VirtualEnv(venv)
-
+            return VirtualEnv(venv) if venv.exists() else self.get_system_env()
         if env_prefix is not None:
             prefix = Path(env_prefix)
             base_prefix = None
@@ -892,11 +890,11 @@ class EnvManager:
                     ):
                         continue
                 elif not supported_python.allows_any(
-                    parse_constraint(python_to_try + ".*")
+                    parse_constraint(f"{python_to_try}.*")
                 ):
                     continue
 
-                python = "python" + python_to_try
+                python = f"python{python_to_try}"
 
                 if io.is_debug():
                     io.write_line(f"<debug>Trying {python}</debug>")
@@ -1125,10 +1123,7 @@ class Env:
         self._is_mingw = sysconfig.get_platform().startswith("mingw")
         self._is_conda = bool(os.environ.get("CONDA_DEFAULT_ENV"))
 
-        if not self._is_windows or self._is_mingw:
-            bin_dir = "bin"
-        else:
-            bin_dir = "Scripts"
+        bin_dir = "bin" if not self._is_windows or self._is_mingw else "Scripts"
         self._path = path
         self._bin_dir = self._path / bin_dir
 
@@ -1185,17 +1180,12 @@ class Env:
         return GenericEnv(self.base, child_env=self)
 
     def _find_python_executable(self) -> None:
-        bin_dir = self._bin_dir
-
-        if self._is_windows and self._is_conda:
-            bin_dir = self._path
-
-        python_executables = sorted(
+        bin_dir = self._path if self._is_windows and self._is_conda else self._bin_dir
+        if python_executables := sorted(
             p.name
             for p in bin_dir.glob("python*")
             if re.match(r"python(?:\d+(?:\.\d+)?)?(?:\.exe)?$", p.name)
-        )
-        if python_executables:
+        ):
             executable = python_executables[0]
             if executable.endswith(".exe"):
                 executable = executable[:-4]
@@ -1203,12 +1193,11 @@ class Env:
             self._executable = executable
 
     def _find_pip_executable(self) -> None:
-        pip_executables = sorted(
+        if pip_executables := sorted(
             p.name
             for p in self._bin_dir.glob("pip*")
             if re.match(r"pip(?:\d+(?:\.\d+)?)?(?:\.exe)?$", p.name)
-        )
-        if pip_executables:
+        ):
             pip_executable = pip_executables[0]
             if pip_executable.endswith(".exe"):
                 pip_executable = pip_executable[:-4]
@@ -1238,9 +1227,7 @@ class Env:
         # we do not use as_posix() here due to issues with windows pathlib2
         # implementation
         path = self._bin(self._pip_executable)
-        if not Path(path).exists():
-            return str(self.pip_embedded)
-        return path
+        return path if Path(path).exists() else str(self.pip_embedded)
 
     @property
     def platform(self) -> str:
@@ -1272,15 +1259,11 @@ class Env:
 
     @property
     def usersite(self) -> Path | None:
-        if "usersite" in self.paths:
-            return Path(self.paths["usersite"])
-        return None
+        return Path(self.paths["usersite"]) if "usersite" in self.paths else None
 
     @property
     def userbase(self) -> Path | None:
-        if "userbase" in self.paths:
-            return Path(self.paths["userbase"])
-        return None
+        return Path(self.paths["userbase"]) if "userbase" in self.paths else None
 
     @property
     def purelib(self) -> Path:
@@ -1368,12 +1351,7 @@ class Env:
         return True
 
     def get_command_from_bin(self, bin: str) -> list[str]:
-        if bin == "pip":
-            # when pip is required we need to ensure that we fallback to
-            # embedded pip when pip is not available in the environment
-            return self.get_pip_command()
-
-        return [self._bin(bin)]
+        return self.get_pip_command() if bin == "pip" else [self._bin(bin)]
 
     def run(self, bin: str, *args: str, **kwargs: Any) -> str | int:
         cmd = self.get_command_from_bin(bin) + list(args)
@@ -1453,7 +1431,7 @@ class Env:
         Return path to the given executable.
         """
         if self._is_windows and not bin.endswith(".exe"):
-            bin_path = self._bin_dir / (bin + ".exe")
+            bin_path = self._bin_dir / f"{bin}.exe"
         else:
             bin_path = self._bin_dir / bin
 
@@ -1463,10 +1441,11 @@ class Env:
             # the official installer, where python.exe will be at
             # the root of the env path.
             if self._is_windows:
-                if not bin.endswith(".exe"):
-                    bin_path = self._path / (bin + ".exe")
-                else:
-                    bin_path = self._path / bin
+                bin_path = (
+                    self._path / bin
+                    if bin.endswith(".exe")
+                    else self._path / f"{bin}.exe"
+                )
 
                 if bin_path.exists():
                     return str(bin_path)
@@ -1651,10 +1630,7 @@ class VirtualEnv(Env):
     def get_pip_version(self) -> Version:
         output = self.run_pip("--version").strip()
         m = re.match("pip (.+?)(?: from .+)?$", output)
-        if not m:
-            return Version.parse("0.0")
-
-        return Version.parse(m.group(1))
+        return Version.parse(m[1]) if m else Version.parse("0.0")
 
     def get_paths(self) -> dict[str, str]:
         output = self.run_python_script(GET_PATHS)

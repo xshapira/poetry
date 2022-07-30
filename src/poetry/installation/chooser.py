@@ -42,7 +42,7 @@ class Wheel:
     def get_minimum_supported_index(self, tags: list[Tag]) -> int | None:
         indexes = [tags.index(t) for t in self.tags if t in tags]
 
-        return min(indexes) if indexes else None
+        return min(indexes, default=None)
 
     def is_supported_by_environment(self, env: Env) -> bool:
         return bool(set(env.supported_tags).intersection(self.tags))
@@ -76,12 +76,10 @@ class Chooser:
         if not links:
             raise RuntimeError(f"Unable to find installation candidates for {package}")
 
-        # Get the best link
-        chosen = max(links, key=lambda link: self._sort_key(package, link))
-        if not chosen:
+        if chosen := max(links, key=lambda link: self._sort_key(package, link)):
+            return chosen
+        else:
             raise RuntimeError(f"Unable to find installation candidates for {package}")
-
-        return chosen
 
     def _get_links(self, package: Package) -> list[Link]:
         if package.source_type:
@@ -103,7 +101,7 @@ class Chooser:
                 selected_links.append(link)
                 continue
 
-            h = link.hash_name + ":" + link.hash
+            h = f"{link.hash_name}:{link.hash}"
             if h not in hashes:
                 continue
 
@@ -179,6 +177,6 @@ class Chooser:
         if not link.hash:
             return True
 
-        h = link.hash_name + ":" + link.hash
+        h = f"{link.hash_name}:{link.hash}"
 
         return h in {f["hash"] for f in package.files}

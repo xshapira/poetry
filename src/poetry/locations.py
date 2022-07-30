@@ -17,8 +17,7 @@ REPOSITORY_CACHE_DIR = Path(CACHE_DIR) / "cache" / "repositories"
 
 
 def data_dir() -> Path:
-    poetry_home = os.getenv("POETRY_HOME")
-    if poetry_home:
+    if poetry_home := os.getenv("POETRY_HOME"):
         return Path(poetry_home).expanduser()
 
     return Path(user_data_dir("pypoetry", roaming=True))

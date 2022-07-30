@@ -191,7 +191,7 @@ class Application(BaseApplication):
             for option_name, value in input.options.items():
                 if value:
                     option = definition.option(option_name)
-                    run_input.add_parameter_option("--" + option.name)
+                    run_input.add_parameter_option(f"--{option.name}")
                     if option.shortcut:
                         shortcuts = re.split(r"\|-?", option.shortcut.lstrip("-"))
                         shortcuts = [s for s in shortcuts if s]

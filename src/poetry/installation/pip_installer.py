@@ -149,10 +149,11 @@ class PipInstaller(BaseInstaller):
             return req
 
         if package.source_type in ["file", "directory"]:
-            if package.root_dir:
-                req = (package.root_dir / package.source_url).as_posix()
-            else:
-                req = os.path.realpath(package.source_url)
+            req = (
+                (package.root_dir / package.source_url).as_posix()
+                if package.root_dir
+                else os.path.realpath(package.source_url)
+            )
 
             if package.develop and package.source_type == "directory":
                 req = ["-e", req]

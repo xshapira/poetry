@@ -22,7 +22,7 @@ def boolean_validator(val: str) -> bool:
 
 
 def boolean_normalizer(val: str) -> bool:
-    return val in ["true", "1"]
+    return val in {"true", "1"}
 
 
 def int_normalizer(val: str) -> int:
@@ -87,10 +87,7 @@ class Config:
             for key in config:
                 value = self.get(parent_key + key)
                 if isinstance(value, dict):
-                    if parent_key != "":
-                        current_parent = parent_key + key + "."
-                    else:
-                        current_parent = key + "."
+                    current_parent = parent_key + key + "." if parent_key != "" else f"{key}."
                     all_[key] = _all(config[key], parent_key=current_parent)
                     continue
 
@@ -127,10 +124,11 @@ class Config:
         return self.process(value)
 
     def process(self, value: Any) -> Any:
-        if not isinstance(value, str):
-            return value
-
-        return re.sub(r"{(.+?)}", lambda m: self.get(m.group(1)), value)
+        return (
+            re.sub(r"{(.+?)}", lambda m: self.get(m.group(1)), value)
+            if isinstance(value, str)
+            else value
+        )
 
     @staticmethod
     def _get_normalizer(name: str) -> Callable:
@@ -148,7 +146,4 @@ class Config:
         if name == "virtualenvs.path":
             return lambda val: str(Path(val))
 
-        if name == "installer.max-workers":
-            return int_normalizer
-
-        return lambda val: val
+        return int_normalizer if name == "installer.max-workers" else (lambda val: val)

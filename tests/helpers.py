@@ -60,10 +60,7 @@ def get_dependency(
 
 
 def fixture(path: str | None = None) -> Path:
-    if path:
-        return FIXTURE_PATH / path
-    else:
-        return FIXTURE_PATH
+    return FIXTURE_PATH / path if path else FIXTURE_PATH
 
 
 def copy_or_symlink(source: Path, dest: Path) -> None:
